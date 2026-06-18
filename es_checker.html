@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ES添削・採点ツール</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ===== RESET & BASE ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --surface2: #f7f9fc;
+    --border: #dde3ec;
+    --border-focus: #3a82d6;
+    --text-primary: #1a2233;
+    --text-secondary: #5a6478;
+    --text-muted: #9aa3b2;
+    --blue: #3a82d6;
+    --blue-dark: #1e5faa;
+    --blue-light: #e8f0fb;
+    --green: #1d9e75;
+    --green-light: #e6f6f0;
+    --amber: #c07a10;
+    --amber-light: #fdf3e3;
+    --red: #d04040;
+    --red-light: #fdeaea;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --shadow: 0 1px 4px rgba(30,50,90,0.07), 0 4px 16px rgba(30,50,90,0.05);
+  }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  /* ===== LAYOUT ===== */
+  .page {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 4rem;
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+  .header-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--blue);
+    background: var(--blue-light);
+    border-radius: 20px;
+    padding: 4px 14px;
+    margin-bottom: 1rem;
+    letter-spacing: 0.03em;
+  }
+  .header-eyebrow svg { width: 13px; height: 13px; }
+  .header h1 {
+    font-size: clamp(22px, 5vw, 32px);
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.25;
+    margin-bottom: 0.6rem;
+  }
+  .header h1 em {
+    font-style: normal;
+    color: var(--blue);
+  }
+  .header p {
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+  .badges {
+    display: flex;
+    gap: 1.25rem;
+    justify-content: center;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12.5px;
+    color: var(--text-secondary);
+  }
+  .badge svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .badge.g svg { color: var(--green); }
+  .badge.b svg { color: var(--blue); }
+  .badge.a svg { color: var(--amber); }
+
+  /* ===== CARD ===== */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+  .card-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.6rem;
+  }
+
+  /* ===== FORM ELEMENTS ===== */
+  textarea, input[type="text"] {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.75rem 1rem;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--surface2);
+    transition: border-color 0.15s, background 0.15s;
+    outline: none;
+    resize: vertical;
+  }
+  textarea:focus, input[type="text"]:focus {
+    border-color: var(--border-focus);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(58,130,214,0.12);
+  }
+  textarea::placeholder, input::placeholder { color: var(--text-muted); }
+  textarea { min-height: 120px; }
+
+  .input-group { margin-bottom: 1rem; }
+  .input-group:last-child { margin-bottom: 0; }
+  .input-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 0.4rem;
+  }
+  .input-label span {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-left: 4px;
+  }
+
+  /* ===== MODE SELECTOR ===== */
+  .mode-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  @media (min-width: 500px) {
+    .mode-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+  .mode-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 0.85rem 0.5rem;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface2);
+    cursor: pointer;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .mode-btn svg { width: 20px; height: 20px; }
+  .mode-btn:hover {
+    border-color: var(--blue);
+    color: var(--blue);
+    background: var(--blue-light);
+  }
+  .mode-btn.active {
+    border-color: var(--blue);
+    background: var(--blue-light);
+    color: var(--blue-dark);
+  }
+  .mode-btn.active svg { color: var(--blue); }
+
+  /* ===== ACTION ROW ===== */
+  .action-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+  }
+  .char-info {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .btn-group { display: flex; gap: 8px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 1.25rem;
+    height: 40px;
+    border-radius: var(--radius);
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-secondary);
+  }
+  .btn-ghost:hover { background: var(--surface2); border-color: var(--text-muted); }
+  .btn-primary {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--blue-dark); border-color: var(--blue-dark); }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ===== RESULT ===== */
+  .result-wrap { display: none; }
+  .result-wrap.visible { display: block; }
+
+  .result-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .result-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .result-title svg { width: 18px; height: 18px; color: var(--blue); }
+
+  .score-pill {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+    background: var(--blue-light);
+    border: 1.5px solid var(--blue);
+    border-radius: 100px;
+    padding: 4px 16px;
+  }
+  .score-pill .num {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--blue-dark);
+    line-height: 1;
+  }
+  .score-pill .denom {
+    font-size: 12px;
+    color: var(--blue);
+  }
+
+  .result-body {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.85;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .result-body h1, .result-body h2, .result-body h3 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 1rem 0 0.4rem;
+    color: var(--text-primary);
+  }
+
+  /* ===== LOADING ===== */
+  .loading-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    padding: 0.25rem 0;
+  }
+  .spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== DIVIDER ===== */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0.25rem 0 1rem;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .section-divider::before, .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ===== NOTICE ===== */
+  .notice {
+    display: flex;
+    gap: 8px;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius);
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+  }
+  .notice svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; }
+  .notice.info { background: var(--blue-light); color: var(--blue-dark); }
+  .notice.warn { background: var(--amber-light); color: var(--amber); }
+
+  /* ===== API KEY AREA ===== */
+  .apikey-area {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .apikey-area input { flex: 1; font-family: monospace; font-size: 12.5px; }
+  .toggle-btn {
+    flex-shrink: 0;
+    padding: 0 12px;
+    height: 38px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface2);
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+  .toggle-btn:hover { background: var(--border); }
+
+  /* ===== FOOTER ===== */
+  .footer {
+    text-align: center;
+    margin-top: 3rem;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 480px) {
+    .action-row { flex-direction: column; align-items: stretch; }
+    .btn-group { justify-content: flex-end; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-eyebrow">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      ES対策AIツール
+    </div>
+    <h1>ESを<em>添削・採点</em>する</h1>
+    <p>合格データをもとに、あなたのESを厳しく・正確に評価します</p>
+    <div class="badges">
+      <span class="badge g">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        合格データ基準
+      </span>
+      <span class="badge b">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Gemini 2.5 Flash
+      </span>
+      <span class="badge a">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        即時フィードバック
+      </span>
+    </div>
+  </header>
+
+  <!-- API KEY NOTICE -->
+  <div class="notice warn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span>APIキーはブラウザのセッションにのみ保存されます。ページを閉じると消えます。第三者と共有するURLには含まれません。</span>
+  </div>
+
+  <!-- SETTINGS CARD -->
+  <div class="card">
+    <div class="card-label">設定</div>
+    <div class="input-group">
+      <label class="input-label" for="apiKey">Gemini APIキー <span>（毎回入力 or ハードコードで省略可）</span></label>
+      <div class="apikey-area">
+        <input type="password" id="apiKey" placeholder="AIzaSy..." autocomplete="off">
+        <button class="toggle-btn" onclick="toggleKey()">表示</button>
+      </div>
+    </div>
+    <div class="input-group">
+      <label class="input-label" for="jobInput">業種 <span>（例：メーカー、IT、商社、金融）</span></label>
+      <input type="text" id="jobInput" placeholder="例：総合商社">
+    </div>
+  </div>
+
+  <!-- QUESTION & ANSWER CARD -->
+  <div class="card">
+    <div class="card-label">ESの内容</div>
+    <div class="input-group">
+      <label class="input-label" for="questionInput">質問（設問）</label>
+      <textarea id="questionInput" rows="2" placeholder="例：学生時代に最も力を入れて取り組んだことを教えてください。"></textarea>
+    </div>
+    <div class="input-group">
+      <label class="input-label" for="answerInput">あなたの回答</label>
+      <textarea id="answerInput" rows="5" placeholder="ここに自分のES回答を貼り付けてください…"></textarea>
+    </div>
+  </div>
+
+  <!-- MODE CARD -->
+  <div class="card">
+    <div class="card-label">依頼内容</div>
+    <div class="mode-grid" id="modeGrid">
+      <button class="mode-btn active" data-mode="score" onclick="selectMode(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        採点のみ
+      </button>
+      <button class="mode-btn" data-mode="proofread" onclick="selectMode(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        添削のみ
+      </button>
+      <button class="mode-btn" data-mode="model" onclick="selectMode(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        模範解答生成
+      </button>
+      <button class="mode-btn" data-mode="all" onclick="selectMode(this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        すべて実行
+      </button>
+    </div>
+
+    <div class="section-divider" style="margin-top:1rem">追加の依頼</div>
+    <input type="text" id="freeRequest" placeholder="例：丁寧語に統一して、PREP法で構成して、200字以内に収めて…">
+  </div>
+
+  <!-- ACTION ROW -->
+  <div class="action-row">
+    <span class="char-info" id="charInfo">回答：0文字</span>
+    <div class="btn-group">
+      <button class="btn btn-ghost" onclick="loadExample()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        例を試す
+      </button>
+      <button class="btn btn-primary" id="runBtn" onclick="runCheck()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        AIで分析する
+      </button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-wrap" id="resultWrap">
+    <div class="card" style="margin-top:1.5rem">
+      <div class="result-header" id="resultHeader">
+        <div class="result-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span id="resultTitleText">分析結果</span>
+        </div>
+        <div id="scorePill"></div>
+      </div>
+      <div id="resultBody" class="result-body"></div>
+    </div>
+  </div>
+
+  <footer class="footer">合格データPDFの内容は <code>ES_DATA_TEXT</code> 変数に設定してください</footer>
+
+</div>
+
+<script>
+/* =============================================
+   ★ 合格データPDFの内容をここに貼り付けてください
+   ============================================= */
+const ES_DATA_TEXT = `
+### **レポート：応募書類における質問と回答の分析** 
+### **1. 質問（question）の分類** 
+1.  
+2.  
+3.  
+**志望動機・参加理由** 
+*   
+企業やインターンシップへの応募理由、興味を持った点を問う質問。 
+**自己PR・強み** 
+*   
+自身の長所、アピールポイント、得意なことをエピソードと共に問う質問。 
+**学生時代の経験（ガクチカ・課題解決経験）** 
+*   
+学生時代に力を入れたこと、目標達成やチームで成果を出した経験、困難を乗り
+越えた経験などを問う質問。 
+4.  
+5.  
+6.  
+**自己紹介・将来の目標** 
+*   
+自己紹介や、将来の夢、キャリアプラン、目指す人物像などを問う質問。 
+**インターンシップで得たいこと・学び** 
+*   
+インターンシップを通じて具体的に何を学び、何を身につけたいかを問う質問。 
+**スキル・学業・研究内容** 
+*   
+専門スキル（プログラミング、データ分析など）や、ゼミ・研究室での研究内容
+を問う質問。 
+7.  
+**その他（職種・事業理解、ケーススタディなど）** 
+*   
+特定の職種への興味度、企業の事業内容に関する提案、与えられた設定に基づく
+思考力を問う、より専門的・実践的な質問。 
+### **2. 各分類における回答（answer）の分析** 
+#### **1. 志望動機・参加理由** 
+このカテゴリーの質問は、応募者が「なぜ自社なのか」を理解しているかを確認する意図
+があります。 
+*   
+す。 
+**文章構成:** 
+*   
+「貴社を志望する理由は〇〇です」と**結論から述べる**構成が非常に多いで
+*   
+理由を「1つ目は…、2つ目は…」のように**箇条書きや段落分けで構造化**し、
+論理的に説明する傾向があります。（データ13, 30） 
+*   
+多くは、【自身の経験や価値観】→【企業の事業内容や理念への共感】→【インタ
+ーンシップで学びたいこと・貢献したいこと】という流れで構成されています。 
+*   
+**内容の特徴:** 
+*   
+自身の原体験（アルバイトでの業務改善、サークル活動など）をきっかけとし
+て、IT業界やその企業の事業分野に興味を持った経緯を具体的に述べています。（データ
+4, 49, 85） 
+*   
+企業の公式情報（経営理念、事業内容、技術力など）を引用し、**企業研究を行
+っていること**を示しながら、自身の考えと結びつけています。（データ6, 74） 
+*   
+最終的に「業務理解を深めたい」「働くイメージを掴みたい」といった、インター
+ンシップ参加の目的で締めくくられることが一般的です。 
+#### **2. 自己 PR・強み** 
+自身の能力や人柄をアピールし、入社後の活躍イメージを持たせるための質問です。 
+*   
+**文章構成:** 
+*   
+「私の強みは〇〇です」と**強みを最初に明示**する、典型的な結論ファースト
+の構成です。 
+*   
+その強みを裏付ける**具体的なエピソード**が続きます。このエピソードは、課
+題の発見、自身の行動、得られた結果、という流れ（STARメソッド※）で語られること
+が多いです。 
+*   
+最後に「この強みを活かして貴社に貢献したい」と、**入社後の活躍意欲**を示
+して締めくくるのが定型となっています。（データ2, 14） 
+*   
+**内容の特徴:** 
+*   
+アピールされる強みは「目標達成力・やり抜く力」（データ7, 12）、「コミュニケ
+ーション能力」（データ5, 86）、「課題解決力」（データ39）などが多く見られます。 
+*   
+エピソードの題材として、アルバイト（塾講師、飲食店など）、部活動、サークル
+活動が頻繁に用いられています。 
+*   
+成果を客観的に示すため、「売上を〇割向上させた」「時間を〇%短縮した」のよ
+うに**具体的な数字**を盛り込む工夫が見られます。（データ38, 100） 
+※STARメソッド：Situation（状況）、Task（課題）、Action（行動）、Result（結果）の頭
+文字を取った、経験を分かりやすく伝えるためのフレームワーク。 
+#### **3. 学生時代の経験（ガクチカ・課題解決経験）** 
+応募者の主体性、課題解決能力、チームでの協調性などを見るための質問です。 
+*   
+**文章構成:** 
+*   
+「〇〇の経験です」と、取り上げる経験を最初に提示します。 
+*   
+質問文で詳細な記述項目（きっかけ、目標、課題、工夫、結果、学びなど）が指
+定されている場合、それに沿って丁寧に構成されています。（データ16, 22, 77） 
+*   
+ここでもSTARメソッドが強く意識されており、**どのような課題に対し、自分
+がどう考え、行動し、どのような結果になったか**が時系列で語られます。 
+*   
+「この経験から〇〇という学びを得ました」と、**経験の言語化・抽象化**で締
+めくくるのが特徴です。 
+*   
+**内容の特徴:** 
+*   
+サークル、部活動、研究、コンテスト、長期インターンなど、多様な経験が題材
+となっています。 
+*   
+特にチームでの経験が多く、その中での**自身の役割（リーダー、調整役など）
+や働きかけ**を明確に記述しています。（データ29, 42, 62） 
+*   
+直面した課題（例：メンバーのモチベーション低下、業務の属人化、意見の対
+立）を客観的に分析し、それに対して主体的に行動したプロセスが詳細に描かれていま
+す。 
+#### **4. 自己紹介・将来の目標** 
+応募者の人柄や価値観、キャリアに対する考え方の深さを知るための質問です。 
+*   
+**文章構成:** 
+*   
+「〇〇大学の〇〇です」という所属から始まり、現在取り組んでいる学業（ゼ
+ミ・研究）や学外活動を簡潔に紹介します。 
+*   
+その上で「将来は〇〇な人材（SE）になりたい」という**目標やビジョン**を明
+確に述べます。 
+*   
+その目標が、なぜその企業で実現できると考えるのか、という形で志望動機に繋
+げる構成が見られます。（データ3, 84） 
+*   
+す。 
+**内容の特徴:** 
+*   
+学業で得た専門性と、活動で培った人間性の両面から自身をアピールしていま
+*   
+将来の目標として、単に「SEになりたい」だけでなく、「顧客にとって真に価値
+のある」「ビジネスとITを掛け合わせて課題解決できる」といった、**付加価値を意識し
+た表現**が使われています。 
+#### **5. インターンシップで得たいこと・学び** 
+参加意欲の高さや、目的意識を持って行動できる人材かを見るための質問です。 
+*   
+**文章構成:** 
+*   
+「〇〇を学びたい」「〇〇を身につけたい」と**目的を最初に提示**します。 
+*   
+なぜそれを学びたいのか、という理由（自身の現状の課題意識や興味・関心）を
+続けて説明します。 
+*   
+学んだことを「今後の自己成長」や「キャリア選択」にどう活かしたいかで締め
+くくります。 
+*   
+**内容の特徴:** 
+*   
+「SEの具体的な業務内容の理解」「上流工程の体験」「チーム開発のプロセス」な
+ど、**職種や業務への解像度を高めたい**という意図が多く見られます。（データ9, 21, 
+67） 
+*   
+インターンシップを、自身の強みや課題を客観的に把握するための**自己分析の
+機会**と捉えている回答も見られます。（データ88） 
+#### **6. スキル・学業・研究内容** 
+専門的な知識や技術レベル、論理的思考力を確認するための質問です。 
+*   
+**文章構成:** 
+*   
+研究内容については、【研究背景・目的】→【具体的な手法】→【現状の課題や今
+後の展望】という、**学術的なレポートに近い構成**で説明されています。（データ28, 
+43） 
+*   
+専門用語を使いつつも、その分野を専門としない読み手にも伝わるよう、平易な
+言葉で補足する工夫が見られます。 
+*   
+スキルに関する質問では、使用可能な言語やツール、開発経験などを具体的に列
+挙しています。 
+*   
+**内容の特徴:** 
+*   
+AI、データサイエンス、自然言語処理など、応募先企業の事業と関連性の高い専
+門分野が語られています。 
+*   
+プログラミング経験がない場合でも、WordやExcelでの資料作成・データ整理な
+ど、**基本的なPCスキルを具体的に記述**することで対応しています。（データ15） 
+*   
+研究活動で直面した困難や、それを乗り越えたプロセスに触れることで、**粘り
+強さや問題解決能力**をアピールする側面もあります。（データ43） 
+#### **7. その他（職種・事業理解、ケーススタディなど）** 
+より実践的な思考力や、企業・業界への深い理解度を測るための質問です。 
+*   
+**文章構成:** 
+*   
+職種への興味を問う質問では、「興味がある」と明確に意思表示し、その理由を自
+身の経験と関連付けて説明しています。（データ19） 
+*   
+ケーススタディ（データ101〜103）では、与えられた情報をもとに【課題分析】
+→【戦略立案】→【具体的な行動計画】という**論理的な思考プロセス**を段階的に記述
+しています。 
+*   
+**内容の特徴:** 
+*   
+企業の持つ具体的なアセット（資産やデータ）を挙げ、それを活用した課題解決
+策を提案するなど、**深い企業研究に基づいた回答**が見られます。（データ35） 
+*   
+ケーススタディでは、マーケティング、データ活用、チームマネジメントといっ
+た複数の視点を組み合わせ、**複雑な状況を整理して最適解を導き出す能力**が示されて
+います。 
+--- 
+### **簡単な例文（自己PRの典型的な構成）** 
+**質問：あなたの強みを教えてください。** 
+> **【①結論：強みの提示】** 
+> 私の強みは、目標達成のために周囲を巻き込み、最後までやり抜く力です。 
+> 
+> **【②具体例：STARメソッド】** 
+> （状況・課題）この強みは、〇〇サークルの副代表として、新入部員の定着率が50%と
+低い課題に取り組んだ際に発揮されました。ヒアリングの結果、原因は練習内容への不満
+と部員間の交流不足にあると判明しました。 
+> （行動）そこで私は、経験者と初心者がペアを組む練習制度を提案し、月1回の交流イ
+ベントを企画・実行しました。当初は練習方法の変更に反対意見もありましたが、一人ひ
+とりと対話し、改善の目的を丁寧に説明することで協力を得ることができました。 
+> （結果）結果として、新入部員の満足度が向上し、その年の定着率は90%を達成しまし
+た。 
+> 
+> **【③結論：企業への貢献】** 
+> この経験で培った巻き込み力と実行力を活かし、貴社でもチームの一員として主体的に
+プロジェクトを推進し、目標達成に貢献したいと考えております。
+`;
+
+/* =============================================
+   ★ APIキーを直書きする場合はここに入力
+     （入力欄を使う場合は空のままでOK）
+   ============================================= */
+const HARDCODED_API_KEY = '';
+
+/* ============================================= */
+
+let selectedMode = 'score';
+
+const modePrompts = {
+  score: (q, a, job, free) => `
+あなたは一流の採用担当者です。
+提供する【合格者データ】の共通点や特徴をベース（採点基準）として、
+【採点する私のES】を厳しく審査・採点してください。
+
+【対象業種】
+${job || '指定なし'}
+
+【合格者データ（採点基準）】
+${ES_DATA_TEXT}
+
+【採点する私のES】
+質問: ${q}
+回答: ${a}
+
+【出力フォーマット】
+# あなたのESの採点結果
+**スコア: 〇〇 / 100点**
+
+## 評価コメント
+（総評を3〜4文で）
+
+## 良い点
+（箇条書きで2〜3点）
+
+## 改善点
+（箇条書きで2〜3点）
+${free ? `\n## 追加依頼への回答\n${free}` : ''}
+`,
+
+  proofread: (q, a, job, free) => `
+あなたは一流の採用担当者です。
+提供する【合格者データ】の共通点や特徴をベース（添削基準）として、
+【添削する私のES】を具体的に添削してください。
+
+【対象業種】
+${job || '指定なし'}
+
+【合格者データ（添削基準）】
+${ES_DATA_TEXT}
+
+【添削する私のES】
+質問: ${q}
+回答: ${a}
+
+【出力フォーマット】
+# ES添削結果
+
+## 問題点と改善提案
+（箇条書きで具体的に指摘）
+
+## 添削後の文章
+（修正した完成版を出力）
+${free ? `\n## 追加依頼への回答\n${free}` : ''}
+`,
+
+  model: (q, a, job, free) => `
+あなたは一流の採用コンサルタントです。
+過去の【合格者データ】から、企業が好む傾向（強みの出し方、文章のトーン等）を深く分析した上で、
+【新しく回答したい質問】に対する最適な模範解答を生成してください。
+
+すべての解答において結論から簡潔に説明することを決して忘れないでください。
+似たような問題や業種から最も関係する回答を参考にしてください。
+
+【対象業種】
+${job || '指定なし'}
+
+【合格者データ（傾向分析用）】
+${ES_DATA_TEXT}
+
+【参考にする私の回答】
+質問: ${q}
+現在の回答: ${a}
+
+【依頼】
+${free || '上記の質問に対する最適な模範解答を生成してください。'}
+
+【出力フォーマット】
+# 模範解答
+
+## 推奨構成
+（PREP法など、どの構成が有効かを説明）
+
+## 模範解答（完成版）
+（実際に使える模範解答を出力）
+
+## ポイント解説
+（なぜこの構成・表現が効果的かを3点で説明）
+`,
+
+  all: (q, a, job, free) => `
+あなたは一流の採用担当者かつ採用コンサルタントです。
+提供する【合格者データ】をベースとして、【私のES】について以下の3つをすべて実行してください。
+
+【対象業種】
+${job || '指定なし'}
+
+【合格者データ（基準データ）】
+${ES_DATA_TEXT}
+
+【私のES】
+質問: ${q}
+回答: ${a}
+
+【追加依頼】
+${free || 'なし'}
+
+【出力フォーマット】
+# ES総合分析結果
+
+---
+
+## ① 採点結果
+**スコア: 〇〇 / 100点**
+（評価コメントを3〜4文）
+
+構成力 /25点
+具体性 /25点
+論理性 /25点
+企業理解 /25点
+
+採点結果はこのような4つの観点から評価をしてください。合計点はこれを合算してください
+
+
+### 良い点
+（箇条書き）
+
+### 改善点
+（箇条書き）
+
+---
+
+## ② 添削
+### 問題点と改善提案
+（箇条書きで具体的に指摘）
+
+### 添削後の文章
+（修正した完成版）
+
+---
+
+## ③ 模範解答
+### 推奨構成
+（PREP法など）
+
+### 模範解答（完成版）
+（実際に使える回答）
+`
+};
+
+function selectMode(btn) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedMode = btn.dataset.mode;
+}
+
+document.getElementById('answerInput').addEventListener('input', () => {
+  const len = document.getElementById('answerInput').value.length;
+  document.getElementById('charInfo').textContent = `回答：${len}文字`;
+});
+
+function toggleKey() {
+  const el = document.getElementById('apiKey');
+  const btn = el.nextElementSibling;
+  if (el.type === 'password') { el.type = 'text'; btn.textContent = '隠す'; }
+  else { el.type = 'password'; btn.textContent = '表示'; }
+}
+
+function loadExample() {
+  document.getElementById('questionInput').value = '学生時代に最も力を入れて取り組んだことを教えてください。（400字以内）';
+  document.getElementById('answerInput').value = '私はアルバイトのカフェで接客を頑張りました。最初はうまくできませんでしたが、だんだん慣れてきました。お客様に喜んでもらえるよう努力しました。この経験から、コミュニケーション能力が身につきました。社会に出ても役立てたいと思います。';
+  document.getElementById('jobInput').value = 'サービス業・小売';
+  document.getElementById('charInfo').textContent = `回答：${document.getElementById('answerInput').value.length}文字`;
+}
+
+async function runCheck() {
+  const apiKey = HARDCODED_API_KEY || document.getElementById('apiKey').value.trim();
+  const question = document.getElementById('questionInput').value.trim();
+  const answer = document.getElementById('answerInput').value.trim();
+  const job = document.getElementById('jobInput').value.trim();
+  const free = document.getElementById('freeRequest').value.trim();
+
+  if (!apiKey) { alert('Gemini APIキーを入力してください。'); return; }
+  if (!question) { alert('質問（設問）を入力してください。'); return; }
+  if (!answer) { alert('あなたの回答を入力してください。'); return; }
+
+  const runBtn = document.getElementById('runBtn');
+  runBtn.disabled = true;
+  runBtn.innerHTML = `<div class="spinner"></div> 分析中…`;
+
+  const resultWrap = document.getElementById('resultWrap');
+  resultWrap.classList.add('visible');
+  document.getElementById('resultBody').innerHTML = `<div class="loading-row"><div class="spinner"></div>Geminiが合格データをもとに分析しています…</div>`;
+  document.getElementById('scorePill').innerHTML = '';
+
+  const modeLabels = { score: '採点結果', proofread: '添削結果', model: '模範解答', all: '総合分析結果' };
+  document.getElementById('resultTitleText').textContent = modeLabels[selectedMode];
+
+  const prompt = modePrompts[selectedMode](question, answer, job, free);
+
+  try {
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      }
+    );
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err.error?.message || `HTTP ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '（応答が空でした）';
+
+    const scoreMatch = text.match(/スコア[：:]\s*(\d{1,3})\s*[\/／]/);
+    if (scoreMatch && (selectedMode === 'score' || selectedMode === 'all')) {
+      document.getElementById('scorePill').innerHTML =
+        `<div class="score-pill"><span class="num">${scoreMatch[1]}</span><span class="denom">&nbsp;/ 100点</span></div>`;
+    }
+
+    document.getElementById('resultBody').textContent = text;
+    resultWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch (err) {
+    document.getElementById('resultBody').innerHTML =
+      `<div style="color:var(--red)">エラーが発生しました：${err.message}</div>
+       <div style="color:var(--text-secondary);margin-top:8px;font-size:13px">APIキーや入力内容を確認してください。</div>`;
+  } finally {
+    runBtn.disabled = false;
+    runBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polygon points="5 3 19 12 5 21 5 3"/></svg> AIで分析する`;
+  }
+}
+</script>
+</body>
+</html>
